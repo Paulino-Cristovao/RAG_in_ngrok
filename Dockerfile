@@ -6,4 +6,4 @@ COPY . .
 
 RUN pip install flask langchain langchain-openai python-dotenv duckduckgo-search langchain-community
 
-CMD ["python", "app.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5001"]

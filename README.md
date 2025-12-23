@@ -1,51 +1,69 @@
 # OpenAI LangChain Chat Agent with DuckDuckGo Search & Memory
 
 A powerful conversational AI agent built with **Python**, **Flask**, **LangChain**, and **OpenAI**. This agent enables real-time information retrieval using **DuckDuckGo Search** and maintains conversation context with **memory persistence**.
+# LangChain Chat Agent
+
+A simple, powerful chat agent built with **FastAPI**, **LangChain**, and **OpenAI**. It features a modern web interface and can be easily shared via **Ngrok**.
 
 ## Features
 
-- **Real-Time Web Search**: Retrieves up-to-date information from the web using DuckDuckGo.
-- **Conversation Memory**: Remembers the last 10 interactions to maintain context.
-- **REST API**: Exposes a simple `/chat` endpoint for integration.
-- **Dockerized**: specific `Dockerfile` for easy container deployment.
-- **Public Exposure**: Includes scripts to expose the local server via **Ngrok**.
-- **Infrastructure as Code**: Includes **Terraform** configuration for AWS deployment.
-- **CI/CD**: GitHub Actions workflow for automated testing.
-
-## Prerequisites
-
-- Python 3.10+
-- OpenAI API Key
-- Ngrok Account (optional, for public access)
+- **Interactive Web Interface**: Beautiful, dark-themed chat UI.
+- **RAG + Search**: Integrated DuckDuckGo search for real-time information.
+- **Memory**: Remembers conversation context using LangGraph.
+- **Easy Sharing**: Includes scripts to expose your local app to the internet via Ngrok.
 
 ## Installation
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Paulino-Cristovao/RAG_in_ngrok.git
-   cd RAG_in_ngrok
-   ```
+1.  **Clone the repository**:
+    ```bash
+    git clone <repository-url>
+    cd RAG_in_ngrok
+    ```
 
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+2.  **Install dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-3. **Configure Environment:**
-   Update the `.env` file with your OpenAI API Key:
-   ```env
-   OPENAI_API_KEY=sk-your-api-key-here
-   ```
+3.  **Environment Setup**:
+    Create a `.env` file in the root directory and add your OpenAI API Key:
+    ```bash
+    OPENAI_API_KEY=sk-...
+    ```
 
-## Usage
+## How to Run
 
-### Running Locally
+### Option 1: Run Locally
+Use this if you just want to test on your own computer.
 
-Start the Flask application:
+1.  Start the application:
+    ```bash
+    python main.py
+    ```
+2.  Open your browser to: **[http://localhost:5001](http://localhost:5001)**
+
+### Option 2: Share with Ngrok
+Use this to let others use your agent over the internet.
+
+1.  **Open Terminal 1** (Start the App):
+    ```bash
+    python main.py
+    ```
+    *Keep this running!*
+
+2.  **Open Terminal 2** (Start the Tunnel):
+    ```bash
+    ./start_ngrok.sh
+    ```
+3.  Copy the `Forwarding` URL (e.g., `https://xyz.ngrok-free.app`) and share it!
+
+## Running Tests
+
+To verify everything is working correctly:
+
 ```bash
-python app.py
+pytest
 ```
-The server will start at `http://0.0.0.0:5000`.
 
 ### Chat API
 
@@ -53,7 +71,7 @@ You can interact with the agent using `curl` or Postman.
 
 **Stateless Request:**
 ```bash
-curl -X POST http://localhost:5000/chat \
+curl -X POST http://localhost:5001/chat \
      -H "Content-Type: application/json" \
      -d '{"query": "What is the latest version of LangChain?"}'
 ```
@@ -62,12 +80,12 @@ curl -X POST http://localhost:5000/chat \
 Provide a `thread_id` to maintain conversation history.
 ```bash
 # First question
-curl -X POST http://localhost:5000/chat \
+curl -X POST http://localhost:5001/chat \
      -H "Content-Type: application/json" \
      -d '{"query": "My name is Alice", "thread_id": "user-session-1"}'
 
 # Follow-up question (Agent remembers name)
-curl -X POST http://localhost:5000/chat \
+curl -X POST http://localhost:5001/chat \
      -H "Content-Type: application/json" \
      -d '{"query": "What is my name?", "thread_id": "user-session-1"}'
 ```
@@ -75,7 +93,7 @@ curl -X POST http://localhost:5000/chat \
 ### Exposing with Ngrok
 
 To allow external access to your local server:
-1. Ensure `app.py` is running.
+1. Ensure `main.py` is running.
 2. Run the helper script:
    ```bash
    ./start_ngrok.sh
@@ -95,7 +113,7 @@ pytest
 Build and run the container:
 ```bash
 docker build -t chat-agent .
-docker run -p 5000:5000 --env-file .env chat-agent
+docker run -p 5001:5001 --env-file .env chat-agent
 ```
 
 ### Infrastructure (Terraform)
