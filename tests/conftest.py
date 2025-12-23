@@ -1,6 +1,11 @@
 from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
+import os
+
+# Set dummy API key to pass Tavily validation during import
+os.environ["TAVILY_API_KEY"] = "test-key"
+
 from main import app
 
 @pytest.fixture

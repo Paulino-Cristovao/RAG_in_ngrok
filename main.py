@@ -2,20 +2,17 @@
 LangChain Chat Agent.
 
 This module initializes a FastAPI application that serves a RAG-enabled
-chat agent using OpenAI and DuckDuckGo search tools. It utilizes
+chat agent using OpenAI and Tavily search tools. It utilizes
 LangGraph for state management and memory persistence.
 """
 
-from typing import Any, cast, Optional
+from typing import Any, cast
 
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.templating import Jinja2Templates
-from datetime import datetime, timedelta
-import re
-from langchain_community.tools import DuckDuckGoSearchResults
-from langchain_core.callbacks import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
+from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
@@ -27,7 +24,7 @@ load_dotenv()
 
 app = FastAPI(
     title="LangChain Chat Agent",
-    description="A RAG-enabled chat agent using OpenAI and DuckDuckGo",
+    description="A RAG-enabled chat agent using OpenAI and Tavily",
     version="1.0.0",
 )
 
@@ -39,82 +36,14 @@ templates = Jinja2Templates(directory="templates")
 llm = ChatOpenAI(temperature=0.7)
 
 # Tools
-search = DuckDuckGoSearchResults(max_results=6)
+tavily_search = TavilySearchResults(
+    max_results=8,                  # More context
+    search_depth="advanced",        # Better for news/sports/finance
+    include_answer=True,            # Direct summarized answer
+    include_raw_content=False
+)
 
-
-def enhance_query_with_recency(query: str) -> str:
-    """Automatically add time filters for time-sensitive queries"""
-    lower_query = query.lower()
-    
-    time_keywords = [
-        "today", "now", "latest", "recent", "current", "news", "update",
-        "happened", "happening", "score", "price", "weather", "stock"
-    ]
-    
-    if any(k in lower_query for k in time_keywords):
-        # Add site operators or time hints
-        return f"{query} after:{(datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')}"
-    
-    return query
-
-class SearchTool(BaseTool):
-    name: str = "web_search"
-    description: str = "Useful for searching the internet for real-time information."
-
-    def _run(self, query: str, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
-        print(f"\n[REAL-TIME SEARCH] Query: {query}")
-        try:
-            enhanced_query = enhance_query_with_recency(query)
-            results = search.invoke({"query": enhanced_query})
-            print(f"[FOUND] {len(results)} results\n")
-            return self._format_results(results)
-        except Exception as e:
-            return f"Search failed: {str(e)}"
-
-    async def _arun(self, query: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
-        print(f"\n[REAL-TIME SEARCH] Query: {query}")
-        try:
-            enhanced_query = enhance_query_with_recency(query)
-            # ainvoke also accepts dict input for DuckDuckGoSearchResults
-            results = await search.ainvoke({"query": enhanced_query})
-            print(f"[FOUND] {len(results)} results (async)\n")
-            return self._format_results(results)
-        except Exception as e:
-            return f"Search failed: {str(e)}"
-
-    def _format_results(self, results: str) -> str:
-        """Parse and format search results cleanly"""
-        if not results.strip():
-            return "No results found."
-
-        formatted = ["Latest web results:\n"]
-        # DuckDuckGoSearchResults returns a list of results as a string in format:
-        # [snippet] link [title], etc. dependent on the version, or [title](link) snippet
-        # The user provided parser: [title]url[snippet]
-        # Let's adapt based on standard output or user suggestion.
-        # User suggestion:
-        for i, result in enumerate(results.split("\n")[:6], 1):  # Limit to top 6
-            if not result.strip():
-                continue
-            # Each result format: [title]url[snippet] ? 
-            # Actually standard DDG output usually is: [snippet] (url), title is implicit or [title] (url) snippet.
-            # But let's use the user's logic which splits by ']'
-            try:
-                parts = result.split("]", 2)
-                if len(parts) < 3:
-                    # Fallback if format is different
-                    formatted.append(f"{i}. {result}\n")
-                    continue
-                title = parts[0][1:]  # Remove leading [
-                url = parts[1]
-                snippet = parts[2] if len(parts) > 2 else ""
-                formatted.append(f"{i}. {title}\n   Link: {url}\n   {snippet.strip()}\n")
-            except Exception:
-                formatted.append(f"{i}. {result}\n")
-        return "\n".join(formatted)
-
-search_tool = SearchTool()
-tools: list[BaseTool] = [search_tool]
+tools: list[BaseTool] = [tavily_search]
 
 # Initialize Memory
 checkpointer = MemorySaver()
