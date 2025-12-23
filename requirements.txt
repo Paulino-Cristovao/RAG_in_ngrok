@@ -1,0 +1,11 @@
+flask
+langchain
+langchain-openai
+python-dotenv
+duckduckgo-search
+langchain-community
+pytest
+flake8
+langgraph-checkpoint
+ddgs
+
